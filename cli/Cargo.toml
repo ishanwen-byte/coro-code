@@ -36,6 +36,7 @@ shellexpand = { workspace = true }
 
 # Local dependencies
 coro-core = { path = "../core" }
+dunce = "1.0"
 
 # CLI-specific dependencies
 async-trait = "0.1"
@@ -63,6 +64,7 @@ tree-sitter-go = "0.23"
 rusqlite = { version = "0.32", features = ["bundled"] }
 walkdir = { workspace = true }
 ignore = { workspace = true }
+once_cell = "1.21.3"
 
 [dev-dependencies]
 assert_cmd = "2.0"

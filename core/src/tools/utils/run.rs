@@ -20,13 +20,19 @@ pub struct CommandOptions {
 
 impl Default for CommandOptions {
     fn default() -> Self {
+        let shell = if cfg!(windows) {
+            "pwsh"
+        } else {
+            "/bin/bash"
+        };
+
         Self {
             timeout_seconds: Some(120),
             truncate_after: Some(16000),
             working_directory: None,
             environment: HashMap::new(),
             capture_stderr: true,
-            shell: Some("/bin/bash".to_string()),
+            shell: Some(shell.to_string()),
         }
     }
 }
@@ -48,7 +54,12 @@ pub async fn execute_command(command: &str, options: CommandOptions) -> Result<C
 
     let mut cmd = if let Some(shell) = &options.shell {
         let mut cmd = Command::new(shell);
-        cmd.arg("-c").arg(command);
+        if shell.contains("pwsh") || shell.contains("powershell") {
+            cmd.arg("-Command");
+        } else {
+            cmd.arg("-c");
+        }
+        cmd.arg(command);
         cmd
     } else {
         // Parse command and arguments
@@ -200,13 +211,18 @@ fn truncate_output(output: &str, limit: usize) -> (bool, String) {
 pub async fn stream_command(
     command: &str,
     options: CommandOptions,
-    mut output_handler: impl FnMut(&str) -> Result<()>,
+    mut output_handler: impl FnMut(&str) -> Result<()> + Send,
 ) -> Result<CommandResult> {
     let start_time = Instant::now();
 
     let mut cmd = if let Some(shell) = &options.shell {
         let mut cmd = Command::new(shell);
-        cmd.arg("-c").arg(command);
+        if shell.contains("pwsh") || shell.contains("powershell") {
+            cmd.arg("-Command");
+        } else {
+            cmd.arg("-c");
+        }
+        cmd.arg(command);
         cmd
     } else {
         let parts: Vec<&str> = command.split_whitespace().collect();
@@ -356,7 +372,12 @@ mod tests {
             ..Default::default()
         };
 
-        let result = execute_command("sleep 5", options).await.unwrap();
+        let command = if cfg!(windows) {
+            "Start-Sleep -Seconds 5"
+        } else {
+            "sleep 5"
+        };
+        let result = execute_command(command, options).await.unwrap();
 
         assert!(result.timed_out);
         assert_eq!(result.exit_code, -1);

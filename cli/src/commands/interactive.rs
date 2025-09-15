@@ -28,7 +28,7 @@ pub async fn interactive_command(
 
     // Get current working directory
     let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let project_path = current_dir.canonicalize().unwrap_or(current_dir);
+    let project_path = dunce::canonicalize(&current_dir).unwrap_or(current_dir);
 
     if debug_output {
         debug!("Project path: {}", project_path.display());

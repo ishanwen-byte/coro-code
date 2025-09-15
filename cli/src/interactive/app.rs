@@ -40,7 +40,8 @@ fn parse_file_references(input: &str, project_path: &Path) -> Vec<FileReference>
     // Regex to match @path patterns
     // Matches: @path/to/file, @path/to/file/, @path/to/file followed by space/end
     // Updated to stop at Chinese characters or other non-ASCII word characters
-    let re = Regex::new(r"@([a-zA-Z0-9._/-]+/?)").expect("Invalid regex pattern");
+    // Corrected regex to support Windows paths with drive letters (e.g., C:) and backslashes.
+    let re = Regex::new(r"@([a-zA-Z0-9._/\\:-]+/?)").expect("Invalid regex pattern");
 
     for cap in re.captures_iter(input) {
         if let Some(path_match) = cap.get(1) {
@@ -48,12 +49,12 @@ fn parse_file_references(input: &str, project_path: &Path) -> Vec<FileReference>
             let full_match = cap.get(0).unwrap();
 
             // Resolve path relative to project root
-            let resolved_path = if path_str.starts_with('/') {
-                // Absolute path
-                PathBuf::from(path_str)
+            // Correctly handle both absolute and relative paths across platforms.
+            let path = Path::new(path_str);
+            let resolved_path = if path.is_absolute() {
+                path.to_path_buf()
             } else {
-                // Relative path
-                project_path.join(path_str)
+                project_path.join(path)
             };
 
             references.push(FileReference {

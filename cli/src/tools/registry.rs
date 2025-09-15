@@ -1,5 +1,4 @@
 //! CLI tool registry with extended tools
-
 use coro_core::tools::{ToolExecutor, ToolRegistry};
 
 /// Create a CLI-specific tool registry with all available tools
@@ -7,7 +6,7 @@ pub fn create_cli_tool_registry() -> ToolRegistry {
     let mut registry = ToolRegistry::default(); // This gets core tools (thinking, task_done, mcp)
 
     // Register CLI-specific tools
-    registry.register_factory(Box::new(crate::tools::BashToolFactory));
+    registry.register_factory(Box::new(crate::tools::ShellToolFactory));
     registry.register_factory(Box::new(crate::tools::EditToolFactory));
     registry.register_factory(Box::new(crate::tools::GlobToolFactory));
     registry.register_factory(Box::new(crate::tools::JsonEditToolFactory));

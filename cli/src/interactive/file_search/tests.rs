@@ -130,7 +130,7 @@ mod integration_tests {
 
         // Check that insertion text is absolute path
         let insertion_text = main_result.get_insertion_text();
-        assert!(insertion_text.starts_with("/"));
+        assert!(std::path::Path::new(&insertion_text).is_absolute());
         assert!(insertion_text.ends_with("main.rs"));
         assert!(insertion_text.contains(&project_path.to_string_lossy().to_string()));
 

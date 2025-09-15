@@ -75,11 +75,13 @@ pub fn format_with_line_numbers(content: &str, start_line: usize) -> String {
 /// Validate that a path is absolute
 pub fn validate_absolute_path(path: &Path) -> Result<()> {
     if !path.is_absolute() {
-        let suggested_path = Path::new("/").join(path);
+        // On Windows, an absolute path starts with a drive letter (e.g., "C:\").
+        // On Unix, it starts with a "/".
+        // The `is_absolute()` check handles this correctly.
+        // The original error message was misleading for Windows users.
         return Err(format!(
-            "The path {} is not an absolute path, it should start with `/`. Maybe you meant {}?",
-            path.display(),
-            suggested_path.display()
+            "The path '{}' is not an absolute path. Please provide a full, absolute path.",
+            path.display()
         )
         .into());
     }

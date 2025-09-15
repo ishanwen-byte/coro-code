@@ -167,6 +167,76 @@ impl Default for EnhancedTextInputProps {
     }
 }
 
+// Regex to find file paths starting with @
+static FILE_PATH_REGEX: once_cell::sync::Lazy<regex::Regex> =
+    once_cell::sync::Lazy::new(|| regex::Regex::new(r"(@[^\s]+)").unwrap());
+
+/// Renders a line of text, highlighting file paths with a specific color.
+///
+/// This function takes a line of text and splits it into segments based on a regex
+/// that identifies file paths (e.g., `@path/to/file`). Each segment is then rendered
+/// as a `Text` element. File paths are colored differently to distinguish them
+/// from the rest of the text.
+///
+/// The function returns a `View` element containing a series of horizontally arranged
+/// `Text` elements, effectively creating a single line of text with highlighted parts.
+fn render_line_with_highlighting(
+    line: &str,
+    default_color: Color,
+    highlight_color: Color,
+) -> AnyElement<'static> {
+    let mut elements: Vec<AnyElement<'static>> = Vec::new();
+    let mut last_end = 0;
+
+    // If no matches are found, return a single Text element for the whole line for efficiency.
+    if FILE_PATH_REGEX.find(line).is_none() {
+        return element! {
+            Text(
+                content: line.to_string(),
+                color: default_color,
+            )
+        }.into();
+    }
+
+    for mat in FILE_PATH_REGEX.find_iter(line) {
+        // Add the text before the match
+        if mat.start() > last_end {
+            elements.push(element! {
+                Text(
+                    content: line[last_end..mat.start()].to_string(),
+                    color: default_color,
+                )
+            }.into());
+        }
+        // Add the matched text with highlight color
+        elements.push(element! {
+            Text(
+                content: mat.as_str().to_string(),
+                color: highlight_color,
+            )
+        }.into());
+        last_end = mat.end();
+    }
+
+    // Add the remaining text after the last match
+    if last_end < line.len() {
+        elements.push(element! {
+            Text(
+                content: line[last_end..].to_string(),
+                color: default_color,
+            )
+        }.into());
+    }
+
+    element! {
+        View(
+            flex_direction: FlexDirection::Row,
+            width: 100pct,
+            height: 1,
+            children: elements,
+        )
+    }.into()
+}
 /// Simple multiline text input component without internal scrolling
 #[component]
 pub fn EnhancedTextInput(
@@ -746,7 +816,7 @@ pub fn EnhancedTextInput(
                     height: 100pct,
                     position: Position::Relative,
                 ) {
-                    #(display_lines.iter().enumerate().map(|(line_idx, line)| {
+                    #(display_lines.into_iter().enumerate().map(|(line_idx, line)| {
                         element! {
                             View(
                                 key: format!("line-{}", line_idx),
@@ -757,17 +827,16 @@ pub fn EnhancedTextInput(
                                 #(if line.is_empty() && line_idx == 0 && props.value.is_empty() && !props.placeholder.is_empty() {
                                     Some(element! {
                                         Text(
-                                            content: &props.placeholder,
+                                            content: props.placeholder.clone(),
                                             color: Color::DarkGrey,
                                         )
-                                    })
+                                    }.into())
                                 } else {
-                                    Some(element! {
-                                        Text(
-                                            content: line,
-                                            color: props.color.unwrap_or(Color::White),
-                                        )
-                                    })
+                                    Some(render_line_with_highlighting(
+                                        &line,
+                                        props.color.unwrap_or(Color::White),
+                                        Color::Rgb { r: 100, g: 149, b: 237 }, // CornflowerBlue for highlighted paths
+                                    ))
                                 })
                             }
                         }
